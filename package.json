@@ -1,0 +1,19 @@
+{
+  "name": "purecare-api-fastify",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "author": "Marion",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "fastify": "^4.24.3",
+    "firebase-admin": "^11.11.0",
+    "knex": "^3.0.1",
+    "pg": "^8.11.3"
+  }
+}
