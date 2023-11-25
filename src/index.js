@@ -26,9 +26,13 @@ await handlePUT(fastify);
 await handleDELETE(fastify);
 
 // Run the server!
-try {
-  await fastify.listen({ port: process.env.PORT || 3003, address: "0.0.0.0" });
-} catch (err) {
-  fastify.log.error(err);
-  process.exit(1);
-}
+
+const port = process.env.PORT || 3003;
+const host = "RENDER" in process.env ? `0.0.0.0` : `localhost`;
+
+fastify.listen({ host: host, port: port }, function (err, address) {
+  if (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+});
