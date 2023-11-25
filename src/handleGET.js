@@ -132,9 +132,7 @@ export async function handleGET(fastify) {
 
   fastify.get("/api/v1/user/:recipeId/like-status", async (request, reply) => {
     const searchParams = request.query;
-    console.log({ searchParams });
     const recipeId = request.params.recipeId;
-    console.log({ recipeId });
     const decodedToken = await getAuth(firebaseApp).verifyIdToken(
       searchParams.user_token
     );

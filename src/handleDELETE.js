@@ -25,8 +25,10 @@ export async function handleDELETE(fastify) {
 
   fastify.delete("/api/v1/user-favorite-recipe", async (request, reply) => {
     const token = request.headers.authorization;
-    const query = request.query;
-
+    const body = request.body;
+    console.log({ body });
+    const recipeId = body.recipe_id;
+    console.log({ recipeId });
     if (!token || !token.startsWith("Bearer ")) {
       reply.code(401).send("Missing token");
     }
@@ -36,7 +38,7 @@ export async function handleDELETE(fastify) {
       const decodedToken = await getAuth(firebaseApp).verifyIdToken(userToken);
       const currentUserId = decodedToken.uid;
 
-      await deleteUserFavoriteRecipe(query, currentUserId);
+      await deleteUserFavoriteRecipe(recipeId, currentUserId);
       reply.code(302).send();
     } catch (error) {
       console.error(error);
@@ -45,10 +47,10 @@ export async function handleDELETE(fastify) {
   });
 }
 
-async function deleteUserFavoriteRecipe(form, userId) {
+async function deleteUserFavoriteRecipe(recipeId, userId) {
   await db("user__favorite_recipe")
     .where({
-      recipe_id: form.recipe_id,
+      recipe_id: recipeId,
       user_id: userId,
     })
     .del();
