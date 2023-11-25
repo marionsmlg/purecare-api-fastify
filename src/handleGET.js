@@ -17,7 +17,6 @@ export async function handleGET(fastify) {
 
   fastify.get("/api/v1/recipes", async function handler(request, reply) {
     const searchParams = request.query;
-    console.log({ searchParams });
     if (searchParams.beauty_issue_slug) {
       data = await fetchRecipesByProblem(searchParams);
     } else {
@@ -87,6 +86,17 @@ export async function handleGET(fastify) {
     return data;
   });
 
+  fastify.get("/api/v1/user-favorite-recipe", async (request, reply) => {
+    const searchParams = request.query;
+    const decodedToken = await getAuth(firebaseApp).verifyIdToken(
+      searchParams.user_token
+    );
+    const currentUserId = decodedToken.uid;
+
+    data = await fetchFavoriteRecipesByUserId(currentUserId, searchParams);
+    return data;
+  });
+
   fastify.get("/api/v1/recipe", async (request, reply) => {
     const searchParams = request.query;
     const recipeId = await fetchIdFromSlug("recipe", searchParams.slug);
@@ -119,6 +129,79 @@ export async function handleGET(fastify) {
     };
     return data;
   });
+
+  fastify.get("/api/v1/user/:recipeId/like-status", async (request, reply) => {
+    const searchParams = request.query;
+    console.log({ searchParams });
+    const recipeId = request.params.recipeId;
+    console.log({ recipeId });
+    const decodedToken = await getAuth(firebaseApp).verifyIdToken(
+      searchParams.user_token
+    );
+    const currentUserId = decodedToken.uid;
+
+    data = await isRecipeLikedByUser(currentUserId, recipeId);
+    return data;
+  });
+}
+
+async function isRecipeLikedByUser(userId, recipeId) {
+  try {
+    const result = await db("user__favorite_recipe")
+      .select()
+      .where({ user_id: userId, recipe_id: recipeId });
+
+    return result.length > 0; // Si une correspondance est trouvée, la recette est aimée par l'utilisateur
+  } catch (error) {
+    console.error(
+      "Erreur lors de la vérification de la recette en favori:",
+      error
+    );
+    throw error;
+  }
+}
+
+async function fetchFavoriteRecipesByUserId(userId, searchParams) {
+  let query = db("recipe")
+    .select(
+      "recipe.id",
+      "recipe.title",
+      "recipe_category.name as recipe_category_name",
+      "recipe.img_url",
+      "recipe.preparation_time",
+      "recipe.slug",
+      "recipe_category.slug as recipe_category_slug",
+      "user__favorite_recipe.created_at as favorite_created_at"
+    )
+    .countDistinct("recipe__ingredient.ingredient_id as ingredient_count")
+    .innerJoin(
+      "user__favorite_recipe",
+      "recipe.id",
+      "user__favorite_recipe.recipe_id"
+    )
+    .leftJoin("recipe__ingredient", "recipe.id", "recipe__ingredient.recipe_id")
+    .leftJoin(
+      "recipe_category",
+      "recipe.recipe_category_id",
+      "recipe_category.id"
+    )
+    .where("user_id", userId)
+
+    .groupBy(
+      "recipe.id",
+      "recipe.title",
+      "recipe.recipe_category_id",
+      "recipe_category.name",
+      "recipe.img_url",
+      "recipe.preparation_time",
+      "recipe_category_slug",
+      "user__favorite_recipe.created_at"
+    )
+    .orderBy("user__favorite_recipe.created_at", "desc")
+    .distinct()
+    .limit(searchParams.limit);
+
+  return await query;
 }
 
 async function fetchRecipesByProblem(searchParams) {

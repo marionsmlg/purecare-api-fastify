@@ -6,6 +6,7 @@ import { physicalTraitsAndBeautyIssuesExists } from "./utils.js";
 export async function handleDELETE(fastify) {
   fastify.delete("/api/v1/users", async (request, reply) => {
     const token = request.headers.authorization;
+
     if (!token || !token.startsWith("Bearer ")) {
       reply.code(401).send("Missing token");
     }
@@ -21,6 +22,37 @@ export async function handleDELETE(fastify) {
       reply.code(401).send("Forbidden");
     }
   });
+
+  fastify.delete("/api/v1/user-favorite-recipe", async (request, reply) => {
+    const token = request.headers.authorization;
+    const query = request.query;
+
+    if (!token || !token.startsWith("Bearer ")) {
+      reply.code(401).send("Missing token");
+    }
+    const userToken = token.split("Bearer ")[1];
+
+    try {
+      const decodedToken = await getAuth(firebaseApp).verifyIdToken(userToken);
+      const currentUserId = decodedToken.uid;
+
+      await deleteUserFavoriteRecipe(query, currentUserId);
+      reply.code(302).send();
+    } catch (error) {
+      console.error(error);
+      reply.code(401).send("Forbidden");
+    }
+  });
+}
+
+async function deleteUserFavoriteRecipe(form, userId) {
+  await db("user__favorite_recipe")
+    .where({
+      recipe_id: form.recipe_id,
+      user_id: userId,
+    })
+    .del();
+  return;
 }
 
 async function deleteUserBeautyProfile(userId) {
